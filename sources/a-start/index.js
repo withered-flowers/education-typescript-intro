@@ -6,7 +6,13 @@ const firstString = "Hello";
 const secondString = "World";
 
 const anArray = [1, 2, 3, 4, 5];
+const anArrayWithCombination = [1, "Hello", true, 2.5];
 const anObject = { name: "John Doe", age: 20 };
+const anArrayOfObject = [
+  { name: "John Doe", age: 20, PIN: 123456 },
+  { name: "Jane Doe", age: 21, PIN: 123457 },
+  { name: "Baby Doe", age: 1 },
+];
 
 // First Function
 const additional = (first, second) => {
@@ -21,8 +27,8 @@ const concatenateString = (first, second) => {
   return `${first} ${second}`;
 };
 
-const countLength = (string) => {
-  return string.length;
+const countLength = (argString) => {
+  return argString.length;
 };
 
 const combinedString = concatenateString(firstString, secondString);
@@ -32,12 +38,12 @@ console.log("Count Length", countLength(combinedString));
 // End of Second Function
 
 // Callback Function
-const aFunctionWithCallback = (first, second, fnCallback) => {
-  fnCallback(first - second);
-};
-
 const fnCallbackImplementation = (result) => {
   console.log("\nSubstraction", result);
+};
+
+const aFunctionWithCallback = (first, second, fnCallback) => {
+  fnCallback(first - second);
 };
 
 aFunctionWithCallback(firstNumber, secondNumber, fnCallbackImplementation);
@@ -45,7 +51,7 @@ aFunctionWithCallback(firstNumber, secondNumber, fnCallbackImplementation);
 
 // Promise Function
 const aFunctionWithPromise = (first, second) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     resolve(first * second);
   });
 };
