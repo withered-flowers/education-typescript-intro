@@ -143,13 +143,23 @@ interface TodoSuccess {
   completed: boolean;
 }
 
+// ?? Assumption: custom error from the API
 interface TodoError {
   message: string;
 }
 
 const fetchTodosFromJsonPlaceholder = async () => {
   try {
-    const response = await fetch("https://jsonplaceholder.typicode.com/todos");
+    // ?? Fetch data from JSONPlaceholder
+    // ?? When using fetch, we need to await the response
+    // ?? and the awaited response type is Response
+    const response: Response = await fetch(
+      "https://jsonplaceholder.typicode.com/todos"
+    );
+
+    // ?? After we get the response, we need to await the response.json()
+    // ?? and the awaited response type is unknown
+    // ?? We can declare the type of responseJson as TodoSuccess[] OR TodoError
     const responseJson: TodoSuccess[] | TodoError = await response.json();
 
     // ?? If the response is not ok, we need to throw an error
@@ -158,11 +168,33 @@ const fetchTodosFromJsonPlaceholder = async () => {
       // ?? TypeScript will know that responseJson is TodoError
       throw new Error(responseJson.message);
     }
+    /*
+    else if(response.ok && responseJson instanceof Array) {
+      // ?? TypeScript will know that responseJson is TodoSuccess[]
+      return responseJson.slice(0, 3);
+    }
+    */
 
     // ?? We can force the type of responseJson as TodoSuccess[] using "as"
     return (responseJson as TodoSuccess[]).slice(0, 3);
-  } catch (err) {
-    return undefined;
+  } catch (err: unknown) {
+    // ?? If we want to catch the error, we can use catch
+    // ?? But now since we use TypeScript, we need to declare the type of err
+    // return undefined;
+
+    // ?? TypeScript will know that err is unknown
+    // ?? Now we can check the type of err
+
+    // ?? Since we are throwing an Error, we will check if err is an instance of Error
+    if (err instanceof Error) {
+      // ?? TypeScript will know that err is Error
+      // ?? We can reject with the message
+      return Promise.reject(err.message);
+    } else {
+      // ?? TypeScript will know that err is unknown
+      // ?? We can reject with the err itself
+      return Promise.reject(err);
+    }
   }
 };
 
@@ -171,65 +203,199 @@ const fetchTodosFromJsonPlaceholder = async () => {
   const data = await fetchTodosFromJsonPlaceholder();
 
   console.log("\nData from JSONPlaceholder:");
+
+  // ?? Try to hover the "todo" below and see the type of "todo"
   data?.forEach((todo) => {
+    // ?? Try to use the console.log below and when you try to write todo. (todo with dot)
+    // ?? you will see the available properties (same as TodoSuccess)
     console.log(todo.id, todo.title);
   });
 })();
 // End of Fetch Function
 
 // Fetch Function - Reqres.in
-const fetchUsersFromReqresin = async () => {
-  try {
-    const response = await fetch("https://reqres.in/api/users");
-    const responseJson = await response.json();
+// ?? Now we will try to fetch data from Reqres.in (https://reqres.in/)
+// ?? We will use 2 endpoints: https://reqres.in/api/users and https://reqres.in/api/colors
+// ?? Both of them are returning an array of object with "almost" the same structure
+// ?? But the data type is different
 
-    if (!response.ok) {
-      throw new Error(responseJson.message);
-    }
-
-    return responseJson;
-  } catch (err) {
-    return undefined;
+/*
+  {
+    "page": 1,
+    "per_page": 6,
+    "total": 12,
+    "total_pages": 2,
+    "data": <This will be different for users and colors>
   }
+
+  /api/users data:
+  [
+    {
+      "id": 1,
+      "email": "johndoe@mail.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "avatar": "https://reqres.in/img/faces/7-image.jpg"
+    }
+  ]
+
+  /api/colors data:
+  [
+    {
+      "id": 1,
+      "name": "cerulean",
+      "year": 2000,
+      "color": "#98B2D1",
+      "pantone_value": "15-4020"
+    }
+  ]
+*/
+
+// ?? Now instead of using interface, we will use type
+// ?? We can use type for simple structure
+type UserData = {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  avatar: string;
+};
+
+type ColorData = {
+  id: number;
+  name: string;
+  year: number;
+  color: string;
+  pantone_value: string;
+};
+
+// ?? Difference between interface and type
+// ?? https://stackoverflow.com/questions/37233735/typescript-interfaces-vs-types
+// ?? https://www.educba.com/typescript-interface-vs-type/
+
+// ?? We can also use type for complex structure
+type ReqresinResponse = {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+  // We can use union for data
+  data: UserData[] | ColorData[];
+};
+
+type ReqresinErrorResponse = {
+  message: string;
+};
+
+// ?? But what if we want to make sure that the data is dynamic?
+// ?? We can use generics
+
+// ?? We can use generics for dynamic structure
+// ?? Declaring generics using <T>,
+// ?? T is just a convention (can be anything)
+type ReqresinResponseWithGenerics<T> = {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+  // ?? Since the data will be "a lot"
+  // ?? and the data is "T"
+  // ?? We can declare the data as T[]
+  data: T[];
+};
+
+// ?? Now we can use the type using generics
+type ReqresinUserResponse = ReqresinResponseWithGenerics<UserData>;
+type ReqresinColorResponse = ReqresinResponseWithGenerics<ColorData>;
+
+const fetchUsersFromReqresin = async () => {
+  // ?? Let's modify the code with no try catch
+  const response = await fetch("https://reqres.in/api/users");
+  const responseJson: ReqresinUserResponse | ReqresinErrorResponse =
+    await response.json();
+
+  if (!response.ok && "message" in responseJson) {
+    throw new Error(responseJson.message);
+  }
+
+  return responseJson;
 };
 
 const fetchColorsFromReqresin = async () => {
-  try {
-    const response = await fetch("https://reqres.in/api/colors");
-    const responseJson = await response.json();
+  // ?? Let's modify the code with no try catch
+  const response = await fetch("https://reqres.in/api/colors");
+  const responseJson: ReqresinColorResponse | ReqresinErrorResponse =
+    await response.json();
 
-    if (!response.ok) {
-      throw new Error(responseJson.message);
-    }
-
-    return responseJson;
-  } catch (err) {
-    return undefined;
+  if (!response.ok && "message" in responseJson) {
+    throw new Error(responseJson.message);
   }
+
+  return responseJson;
 };
 
 // IIFE (Since we need to use async / await)
 (async () => {
-  const users = await fetchUsersFromReqresin();
+  // ?? Now we will use try catch here
+  try {
+    const users = await fetchUsersFromReqresin();
 
-  console.log("\nData from Reqres.in - Users:");
-  console.log("Page:", users?.page, "Total:", users?.total);
-  users?.data.forEach((user) => {
-    console.log(user.id, user.first_name, user.last_name);
-  });
+    // ?? Now we need to check the type of users
+    if (
+      // ?? Check not ReqresinErrorResponse
+      !("message" in users) &&
+      // ?? Check if users.data is an array (ReqresinUserResponse)
+      users?.data instanceof Array
+    ) {
+      console.log("\nData from Reqres.in - Users:");
+      // ?? Now we don't need to use optional chaining here
+      console.log("Page:", users.page, "Total:", users.total);
+      users.data.forEach(
+        // ?? user will be inferred automatically as UserData
+        (user) => {
+          console.log(user.id, user.first_name, user.last_name);
+        }
+      );
+    }
+  } catch (err) {
+    // ?? Although we know that the err is ReqresinErrorResponse
+    // ?? But TypeScript will still know that err is unknown
+    // ?? (Every try catch err, err will be unknown)
 
-  const colors = await fetchColorsFromReqresin();
+    // ?? We need to "force" the type of err as ReqresinErrorResponse
+    console.log((err as ReqresinErrorResponse).message);
+  }
 
-  console.log("\nData from Reqres.in - Colors:");
-  console.log("Page:", colors?.page, "Total:", colors?.total);
-  colors?.data.forEach((color) => {
-    console.log(
-      color.id,
-      color.name,
-      color.year,
-      color.color,
-      color.pantone_value
-    );
-  });
+  try {
+    const colors = await fetchColorsFromReqresin();
+
+    if (
+      // ?? Check not ReqresinErrorResponse
+      !("message" in colors) &&
+      // ?? Check if colors.data is an array (ReqresinColorResponse)
+      colors?.data instanceof Array
+    ) {
+      console.log("\nData from Reqres.in - Colors:");
+      console.log("Page:", colors.page, "Total:", colors.total);
+      colors.data.forEach(
+        // ?? color will be inferred automatically as ColorData
+        (color) => {
+          console.log(
+            color.id,
+            color.name,
+            color.year,
+            color.color,
+            color.pantone_value
+          );
+        }
+      );
+    }
+  } catch (err) {
+    // ?? Although we know that the err is ReqresinErrorResponse
+    // ?? But TypeScript will still know that err is unknown
+
+    // ?? We need to "force" the type of err as ReqresinErrorResponse
+    console.log((err as ReqresinErrorResponse).message);
+  }
 })();
 // End of Fetch Function
